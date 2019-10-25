@@ -15,11 +15,11 @@ var mongoose    = require('mongoose');
 var uploadfile = require('./models/upload');
 var register = require('./register');
 var util = require('./lib/util');
+var uploadLib = require('./lib/upload');
 
 var programList = require( './config/filelist.js').fileList
 
-var filenumber 
-var downloadList = []
+
 
 var testflag = false
 var testDay = 3
@@ -45,9 +45,11 @@ const url = "http://www.filemaru.com/?doc=list_sub&cate=MED";
 var exec = require('child_process').exec;		 
 
 var TitleinfoArray ;	
-var downfile  
-var filenumber
+//var downloadList ;  
+//var filenumber
 var uploadList = []
+//var filenumber 
+var downloadList = []
 var newDate = new Date();
 
 //driver.find_element_by_xpath('//*[@id="top_search_input"]').click()
@@ -64,8 +66,8 @@ async function startUrl(){
 	await driver.executeScript("$('[name=pass').val('hero6183')");		
 				
 	await driver.executeScript("loginChk()")
-	await driver.sleep(3000);	
-	await driver.executeScript( "$('#sort_area > div > p.b2 > a.openMask').click()" )	
+	await driver.sleep(5000);	
+	//await driver.executeScript( "$('#sort_area > div > p.b2 > a.openMask').click()" )	
 
 	//var content = await register.getuploadcontent()
 	//await registerDetail( driver, content )
@@ -77,13 +79,13 @@ async function startUrl(){
 async function openMask(){
 	driver.executeScript( "$('#sort_area > div > p.b2 > a.openMask').click()" )	
 	//driver.executeScript( "$('#sort_area > div > p.b2 > a:nth-child(1) > img').click()" )
-}
-startUrl()
-startinit()
-//startSchedule() 
+} 
 async function startinit(){
+	//startSchedule()
+	await startUrl()
 	//await StartRegister( )	
-	await checkDownloadfile()
+	//await checkDownloadfile()  // 1주일치 받을 파일 등록
+	await downloadFile()
 	//await example()
 	console.log('date:', new Date( ))
 }
@@ -96,27 +98,28 @@ async function startSchedule(){
 	});	
 
 	cron.schedule('*/20 * * * *', async function () {
-		downloadList = []
-		//close_maru		
-		console.log('date:', new Date( ))
-	    //await checkDownloadfile()
-	    //await example() 
+		downloadFile()
 		await exec('close_maru.ahk - 바로 가기',
 			function callback(err, stdout, stderr){
 			if (err){
 			  console.error(err);
 			}
 		});
-		if( uploadtitle != '')  await StartRegister( uploadtitle ) 	  
+		//if( uploadtitle != '')  await StartRegister( uploadtitle ) 	  
 	}, null, true, 'Asia/Shanghai' ).start();
 }
 
 //var file = new uploadfile({
 
-function registerFiletoDownload( title, date ){
+function registerFiletoDownload( title, keyword, date ){
+	//var new Date( 2019, 10, 07)
+	console.log('registerFiletoDownload', title, date )
 	var file = new uploadfile({
-		filekeyword: title,
-		filedate: date
+		filekeyword: keyword,
+		filedate: date,
+		fulldate: date,
+		downloadfile : true,
+		title: title 
 	});
 	  
 	return new Promise( function( resolve, reject ){
@@ -126,12 +129,12 @@ function registerFiletoDownload( title, date ){
 	})	
 }
 
-//일주일내 
+// input : 1(월요일) , ouput : 191011
 function getDaytoDate( day ){
 	var today = new Date( ).getDay()	
-	console.log( 'getDaytoDate', today, day )
+	//console.log( 'getDaytoDate', today, day )
 	var datoffset = day - today  
-	if( datoffset < 0) datoffset = datoffset + 7
+	//if( datoffset < 0) datoffset = datoffset - 7
 
 	var myDate = new Date();
 	var dateOffset = (24*60*60*1000) * datoffset; //1 days
@@ -142,12 +145,25 @@ function getDaytoDate( day ){
 
 	return time1
 }
+function getDownlist(){
+	var today = new Date( ).getDay()	
+	var downlist = []
 
+	var yesterday = today - 1
+	if( yesterday < 0) yesterday = today + 7
+
+	_.each( programList, function( program ){
+		
+		if( program.date == today || program.date == yesterday  ) downlist.push( program )
+	})
+
+	return downlist
+}
 async function checkDownloadfile(){
 		_.each( programList, async function( program ){
 			//console.log( program.title, getDaytoDate( program.date ) )
 			//중복 확인 todo
-			//await registerFiletoDownload( program.title, getDaytoDate( program.date ) )
+			await registerFiletoDownload( program.title, getDaytoDate( program.date ))
 		})
 		//console.log('checkDownloadfile', testflag, testDay)
 		//if( testflag == true){
@@ -173,31 +189,7 @@ async function checkDownloadfile(){
 		})
 		*/
 }
-/* 제목, 날짜 : 런닝맨, 190812 */
-/*
-async function checkfile( program, time ){
-	var isflag = false
-	return new Promise(function (resolve, reject) {
-		//console.log('checkfile.testFolder', testFolder)
-		fs.readdir(testFolder, function(error, filelist){
-			
-			var _name = new RegExp( program.title );
-			var _date = new RegExp( time );
 
-			console.log('checkfile', _name, _date)
-			_.each( filelist, function( file ){
-				var regex = _name.test( file )
-				if( regex ){
-					regex = _date.test( file )						
-					if( regex ){						
-						resolve( false ) // 이름, 시간 둘다 맞으면
-					}
-				}				
-			})	 
-			resolve( true )
-		})
-	})
-}*/
 async function checkResultfile( title, downloadtitle) {
 	// 날짜
 	var regex1 = new RegExp( downloadtitle );
@@ -224,74 +216,143 @@ async function checkResultfile( title, downloadtitle) {
 	}		
 	return false
 }	
+//-1 ~ +1일 정도 
+function filetodownload(){
+	var dateOffset = (24*60*60*1000) * 1; //5 days
+	var myDate = new Date();
+	var myDate1 = new Date();
+	var time = myDate.toFormat('YYMMDD');
+		time =  myDate.setTime(myDate.getTime() + dateOffset)
+		time = new Date( time ).toFormat('YYMMDD');// 하루후날
+	var time1 = myDate1.toFormat('YYMMDD');	
+		time1 = myDate1.setTime(myDate1.getTime() - dateOffset)
+		time1 = new Date( time1 ).toFormat('YYMMDD');// 하루전날
 
+	return new Promise( function( resolve, reject){
+		uploadfile.find({ filedate: { $gte: time1 , $lte: time }}, function(err, downloadList ){
+			if(err) return console.error(err);
+			resolve( downloadList )
+			//console.dir(book);
+		});
+	})
+
+	return downloadList
+}
+function checkDownloadfile1(){
+
+}
+// title, keyword, date 
+function checkVaildFilebytitle( title, downloadList ){
+	
+	//getDaytoDate
+	var flag = false
+	var result = { flag : false }
+	_.each( downloadList , async function( file ){
+		//console.log('checkVaildFilebytitle2', file.title ,getDaytoDate( file.date ), title  )		
+		var regex = new RegExp( file.title );
+		var validTitle = regex.test( title )	
+
+		//190925 런닝맨
+		if( validTitle ){   // #제목	검증		
+			console.log('checkVaildFilebytitle', getDaytoDate( file.date ))					
+			regex = new RegExp( getDaytoDate( file.date ))
+
+			var validDate = regex.test( title )
+
+			if( validDate ){   // #시간 검증
+				//console.log( 'checkVaildFilebytitleTRue')	
+				flag = true
+				console.log('')
+				result.result = flag
+				result.keyword = file.title
+				result.date = getDaytoDate( file.date )
+				return	result	
+			}
+		}								
+	})
+	//console.log( 'false')
+	return result
+}
 // 제목, 날짜 확인하여 다운받기
+function checkTitleinSite( _index ){
+	var index = _index
+	return new Promise( function( resolve, reject){
+		driver.executeScript( function( [index] ){	
+			//var Titleinfo = [];		
+			//console.log( 'index', i)
+			return  title = $('#mbox > div.rbox.w884 > div > div.sbase_box > table > tbody > tr:nth-child('+ index +') > td.tit > a > span > span').text()
+			//Titleinfo.push(title)					
+		}, [index] ).then( function( title ) {
+			//TitleinfoArray = innerHTML
+			//console.log( 'checkTitleinSite',title  )
+			resolve( title )
+			return title
+			//console.log("innerHTML.Title:", innerHTML) 
+		})
+	})
+}
+function checkExistFile(){
+	return new Promise( function( resolve, reject){
+		uploadfile.find({ filedate: { $gte: time1 , $lte: time }}, function(err, downloadList ){
+			if(err) return console.error(err);
+			resolve( downloadList )
+			//console.dir(book);
+		});
+	})
+}
+function getFile(title, date ){
+	return new Promise( function( resolve, reject){
+		var result = uploadLib.FindUpload({ filekeyword: title , filedate: getDaytoDate( date ) }) 
+		resolve( result )	
+	})
+}
+function filterDownlist(downloadList){
+	var downloadListOrg = getDownlist()
+	var downloadList = []
+	_.each( downloadListOrg, async function( list, index ){
+		var result = await getFile( list.title , list.date )	
+		if( result.length == 0 ) downloadList.push( list )
+	})
+	return downloadList
+}
 async function downloadFile() {
 	try {
-		// 
 		driver.get(url);
-		var title = ''
-			
-		await driver.executeScript( function() {	
-			var Titleinfo = [];		
-			for( var i = 3 ; i < 26 ; i++ ){
-				title = $('#mbox > div.rbox.w884 > div > div.sbase_box > table > tbody > tr:nth-child('+ i +') > td.tit > a > span > span').text()
-				Titleinfo.push(title)				
-			}
-			return Titleinfo
-		}).then( function(innerHTML) {
-			TitleinfoArray = innerHTML
-			console.log("innerHTML", innerHTML) 		
-			
-			_.each( TitleinfoArray , async function(list, index){
-				_.each( downloadList , async function( file ){
-					title = new RegExp( file.title );
-					var regex = title.test( list )					
 		
-					//console.log('example.title', list, file.title , regex)
-					if( regex ){   // 제목
-						var myDate = new Date();
-						var dateOffset = (24*60*60*1000) * 1; //5 days
-						var time = myDate.toFormat('YYMMDD');
-						var time1 =  myDate.setTime(myDate.getTime() - dateOffset)
-						time1 = new Date( time1 ).toFormat('YYMMDD');
-						time  = time + '|' + time1				
-									
-						time = new RegExp( time )
-						regex = time.test( list )
-						
-						//console.log('example.title', list, time , regex)
-						if( regex ){   // 시간
-							console.log('example.title', list, index )
-							downfile = list
-							filenumber = index		
-							return
-							
-							console.log('result', result )
-						}
-					}					
-				})							
-			})
-		})
-		console.log('example()')	
-		var result = download( filenumber, downfile  )
-			
-		//console.log('downfile', downfile )
-		//check content here 
+		var downloadList = filterDownlist()
+		console.log( 'downloadList', downloadList )			
+		
+		var download = {}
+		for( var i = 3 ; i < 26 ; i++ ){
+			// 사이트에서 타이틀만 얻어옴
+			var title = await checkTitleinSite( i )
+			//console.log( 'checkTitleinSite', title )
+			// 하나씩 검증 및 다운로드
+			var validDownload = await checkVaildFilebytitle( title, downloadList );
+	
+			//console.log( 'validDownload', validDownload )
+			if( validDownload.result ){
+				download.index = i
+				download.title = title
+				downloadby( download.index , title, validDownload )
+				return 
+			} 
+			//console.log( 'valid', validDownload, title, download.index )
+			//console.log( 'title', title )
+		}
+	    
 	} finally {
-
 		//await driver.quit();
 	}
 }
 
-async function download( index, title  ){
+async function downloadby( index, title, validDownload  ){
 	//return new Promise( async function (resolve, reject) {
-		console.log('download', index  )
+		console.log('download!!!!!!!!!!!!!', index, title, validDownload  )
 		var title1 = ''
 		if( index == undefined ) return 
 		
-		index = index + 3
-		//var downloadname = "var title = ; console.log('title', title )"
+		//index = index + 3
 		var file = "$('#mbox > div.rbox.w884 > div > div.sbase_box > table > tbody > tr:nth-child("+ index +") > td.tit > a > span > span').click()"
 		//driver.executeScript( downloadname )
 		driver.executeScript(  function( [index] ) {					
@@ -301,11 +362,11 @@ async function download( index, title  ){
 			// 다운로드 검증 체크
 			//var downloadflag = util.checkDownloadfile( downloadfileName )
 			// 다운로드 검증 체크 - mongodb 
-
+			var downloadflag = true
 			console.log('result.download', downloadfileName, downloadflag )
 			title1 = downloadfileName
-			if( downloadflag == 'false' ) return 
-
+			if( downloadflag == false ) return 
+			/*
 			var file = new uploadfile({
 				title: downloadfileName,
 				author: "test"
@@ -313,7 +374,7 @@ async function download( index, title  ){
 			file.save(function(err, uploadfile){
 				if(err) return console.error(err);
 				//console.dir(book);
-			});
+			});*/
 
 		})
 		//console.log('download1', downloadname )
@@ -321,22 +382,23 @@ async function download( index, title  ){
 		driver.executeScript( file )
 		await driver.sleep(1500);
 		
-		await driver.executeScript("fileDownload();")
+		await  driver.executeScript("fileDownload();")
 		console.log( 'fileDownload()' )
 		await driver.sleep(2000);
 		driver.switchTo().alert().accept();
 
-		await driver.sleep(13000);
+		 driver.sleep(13000);
 		//console.log('tttt') 		
-		await exec('click_download.ahk - 바로 가기',
-		  function callback(err, stdout, stderr){
+		 exec('click_download.ahk - 바로 가기',
+		  async function callback(err, stdout, stderr){
 			if (err){
 			  console.error(err);
 			}
-			uploadfile.update({ 'title' : title1 },{ $set :{ downloadfile: true }}, function(err, uploadfile){
-				if(err) return console.error(err);
-				//console.dir(book);
-			});
+			await registerFiletoDownload( title, validDownload.keyword, validDownload.date )
+			//uploadfile.update({ 'title' : title1 },{ $set :{ downloadfile: true }}, function(err, uploadfile){
+			//	if(err) return console.error(err);
+			//	//console.dir(book);
+			//});
 
 		});
 }
@@ -431,4 +493,5 @@ async function registerDetail( driver, content){
 		
 }
 
-
+startinit()
+startSchedule()

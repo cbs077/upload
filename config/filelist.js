@@ -3,10 +3,10 @@ exports.fileList = [
 	{ 'title' :'텔레비전', 'date' : '5' },
 	{ 'title' : '강식당', 'date' : '5' },
 	{ 'title' : '안녕하세요', 'date' : '1' },
-	{ 'title' : '미운 우리', 'date' : '1' },
+	{'title' : '냉장고', 'date' : '1' },
 	{ 'title' : '비디오 스타', 'date' : '2' },
-	{ 'title' : '아이돌룸', 'date' : '2' },
 	{ 'title' : '취존생활', 'date' : '2' },
+	{ 'title' : '아이돌룸', 'date' : '2' },
 	{ 'title' : '아내의맛', 'date' : '2' },
 	{ 'title' : '주간 아이돌', 'date' : '3' },
 	{ 'title' : '백종원의', 'date' : '3' },
@@ -19,7 +19,9 @@ exports.fileList = [
 	{ 'title' : '그것이', 'date' : '6' },
 	{ 'title' : '호구들', 'date' : '6' },
 	{ 'title' : '정글의', 'date' : '6' },
-	{ 'title' : '런닝맨', 'date' : '0' }
-	
+	{ 'title' : '미운 우리', 'date' : '0' },
+	{ 'title' : '런닝맨', 'date' : '0' },
+	{ 'title' : '수퍼맨', 'date' : '0' },
+	{ 'title' : '플레이어', 'date' : '0' },
 ]
  
