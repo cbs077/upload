@@ -10,7 +10,7 @@ async function getuploadcontent( ){
 		uploadfile.find({ 'UploadFlag' : false }).sort({ published_date : -1}).exec( function(err, uploadfile ){
 			if(err) return console.error(err);
 			//console.dir(book);
-			resolve( uploadfile[0] )
+			resolve( uploadfile )
 			//console.log('uploadfile', uploadfile[0])
 		});
 		//uploadtitle = ''

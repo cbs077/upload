@@ -16,15 +16,9 @@ var uploadfile = require('./models/upload');
 var register = require('./register');
 var util = require('./lib/util');
 var uploadLib = require('./lib/upload');
+var thumbnail = require('./thumbnail');
 
 var programList = require( './config/filelist.js').fileList
-
-
-
-var testflag = false
-var testDay = 3
-var testTime = '190626'
-var uploadtitle  = ''
 
 var db = mongoose.connection;
 db.on('error', console.error);
@@ -70,7 +64,7 @@ async function startUrl(){
 	//await driver.executeScript( "$('#sort_area > div > p.b2 > a.openMask').click()" )	
 
 	//var content = await register.getuploadcontent()
-	//await registerDetail( driver, content )
+	//
 
 }
 
@@ -81,13 +75,19 @@ async function openMask(){
 	//driver.executeScript( "$('#sort_area > div > p.b2 > a:nth-child(1) > img').click()" )
 } 
 async function startinit(){
-	//startSchedule()
+//시작하기
 	await startUrl()
-	//await StartRegister( )	
-	//await checkDownloadfile()  // 1주일치 받을 파일 등록
-	await downloadFile()
-	//await example()
-	console.log('date:', new Date( ))
+// 다운로드
+	await downloadFile() 
+// 썸네일 만들기
+	await driver.sleep(70000);
+//	await thumbnail.start()   
+//등록하기
+	//await openMask() 
+	//var content = await register.getuploadcontent()
+	//await registerDetail_1( driver, content )
+	//await registerDetail()	
+	//console.log('date:', new Date( ))
 }
 async function startSchedule(){
 	await exec('close_maru.ahk - 바로 가기',
@@ -97,14 +97,18 @@ async function startSchedule(){
 		}
 	});	
 
-	cron.schedule('*/20 * * * *', async function () {
-		downloadFile()
+	cron.schedule('*/20 * * * *', async function () {	
 		await exec('close_maru.ahk - 바로 가기',
 			function callback(err, stdout, stderr){
 			if (err){
 			  console.error(err);
 			}
-		});
+		});	
+		await downloadFile()
+		//await driver.sleep(70000);
+		//await thumbnail.start()
+
+		
 		//if( uploadtitle != '')  await StartRegister( uploadtitle ) 	  
 	}, null, true, 'Asia/Shanghai' ).start();
 }
@@ -165,29 +169,6 @@ async function checkDownloadfile(){
 			//중복 확인 todo
 			await registerFiletoDownload( program.title, getDaytoDate( program.date ))
 		})
-		//console.log('checkDownloadfile', testflag, testDay)
-		//if( testflag == true){
-		//	console.log('test1')
-		//	dayLabel = testDay
-		//	time = testTime
-		//}
-		//console.log('checkDownloadfile1', time,time1, dayLabel, dayLabel1 )
-		/*
-		_.each( programList, async function( program ){
-			if( dayLabel == program.date ||  dayLabel1 == program.date){
-				var result = await checkfile( program, time )
-				console.log('checkDownloadfile.result:',program.title, result )
-				if( result ){						
-					//if( _.findWhere(downloadList, {title: result.title}) == undefined ){
-						downloadList.push( program )
-						console.log( 'downloadList', downloadList )
-					//}
-				}
-				//resolve()				
-			}
-							
-		})
-		*/
 }
 
 async function checkResultfile( title, downloadtitle) {
@@ -255,18 +236,21 @@ function checkVaildFilebytitle( title, downloadList ){
 		//190925 런닝맨
 		if( validTitle ){   // #제목	검증		
 			console.log('checkVaildFilebytitle', getDaytoDate( file.date ))					
-			regex = new RegExp( getDaytoDate( file.date ))
-
-			var validDate = regex.test( title )
-
-			if( validDate ){   // #시간 검증
-				//console.log( 'checkVaildFilebytitleTRue')	
-				flag = true
-				console.log('')
-				result.result = flag
-				result.keyword = file.title
-				result.date = getDaytoDate( file.date )
-				return	result	
+			
+			regex = new RegExp( '720p' )
+			var valid720p = regex.test( title )
+			if( valid720p ){
+				regex = new RegExp( getDaytoDate( file.date ))
+				var validDate = regex.test( title )
+				if( validDate ){   // #시간 검증
+					//console.log( 'checkVaildFilebytitleTRue')	
+					flag = true
+					console.log('')
+					result.result = flag
+					result.keyword = file.title
+					result.date = getDaytoDate( file.date )
+					return	result	
+				}
 			}
 		}								
 	})
@@ -278,13 +262,9 @@ function checkTitleinSite( _index ){
 	var index = _index
 	return new Promise( function( resolve, reject){
 		driver.executeScript( function( [index] ){	
-			//var Titleinfo = [];		
-			//console.log( 'index', i)
 			return  title = $('#mbox > div.rbox.w884 > div > div.sbase_box > table > tbody > tr:nth-child('+ index +') > td.tit > a > span > span').text()
-			//Titleinfo.push(title)					
+				
 		}, [index] ).then( function( title ) {
-			//TitleinfoArray = innerHTML
-			//console.log( 'checkTitleinSite',title  )
 			resolve( title )
 			return title
 			//console.log("innerHTML.Title:", innerHTML) 
@@ -337,8 +317,6 @@ async function downloadFile() {
 				downloadby( download.index , title, validDownload )
 				return 
 			} 
-			//console.log( 'valid', validDownload, title, download.index )
-			//console.log( 'title', title )
 		}
 	    
 	} finally {
@@ -366,18 +344,9 @@ async function downloadby( index, title, validDownload  ){
 			console.log('result.download', downloadfileName, downloadflag )
 			title1 = downloadfileName
 			if( downloadflag == false ) return 
-			/*
-			var file = new uploadfile({
-				title: downloadfileName,
-				author: "test"
-			});
-			file.save(function(err, uploadfile){
-				if(err) return console.error(err);
-				//console.dir(book);
-			});*/
+			
 
 		})
-		//console.log('download1', downloadname )
 		await driver.sleep(500);
 		driver.executeScript( file )
 		await driver.sleep(1500);
@@ -387,110 +356,16 @@ async function downloadby( index, title, validDownload  ){
 		await driver.sleep(2000);
 		driver.switchTo().alert().accept();
 
-		 driver.sleep(13000);
+		await driver.sleep(10000);
 		//console.log('tttt') 		
 		 exec('click_download.ahk - 바로 가기',
 		  async function callback(err, stdout, stderr){
 			if (err){
 			  console.error(err);
 			}
+			await driver.sleep(180000);
 			await registerFiletoDownload( title, validDownload.keyword, validDownload.date )
-			//uploadfile.update({ 'title' : title1 },{ $set :{ downloadfile: true }}, function(err, uploadfile){
-			//	if(err) return console.error(err);
-			//	//console.dir(book);
-			//});
-
 		});
-}
-async function StartRegister( ){
-
-	
-	
-}
-async function registerDetail( driver, content){
-	console.log("registerDetail", content, content.title )
-	await driver.sleep(10000);
-	await driver.executeScript( "$('#naverEditorFrame').contents().find('.se2_photo').click()" )	
-	
-	let tab1, tab2
-	await driver.getAllWindowHandles().then(function(windowHandles) {
-		 tab1 = windowHandles[0];
-		 tab2 = windowHandles[1];
-		 console.log('windowHandles', windowHandles[0], windowHandles[1], windowHandles[2], windowHandles[3])
-	})
-
-	/*await driver.switchTo().window(tab1).then(() => {
-		driver.getCurrentUrl().then(url => {console.log('current url: "' + url + '"');});
-	});*/
-	//console.log('current url11: ', document );
-	await driver.switchTo().window(tab2).then( async() => {
-		
-		//driver.findElement(By.xpath('//*[@id="uploadInputBox"]')).click()
-		
-		
-		//driver.executeScript( " alert( document.children[0].innerHTML )")
-		//await driver.find_element_by_xpath('//*[@id="uploadInputBox"]').click()
-		//
-		//const until = webdriver.until;
-		//driver.sleep(3000);
-		//var user = driver.wait(until.elementLocated(By.id('uploadInputBox')), timeout);
-		//user.click()
-		//var clickFile = "document.getElementsByTagName('iframe')[0].contentWindow.document.getElementById('uploadInputBox').click()"
-		//driver.executeScript ( clickFile )	
-
-		driver.getCurrentUrl().then( (url) => {
-			console.log('current url1: "' +  url + '"');
-			driver.switchTo().frame(0)
-			driver.findElement(By.xpath('//*[@id="uploadInputBox"]')).click()	
-			
-			driver.sleep(1000);
-			var command = 'click_photo.ahk "C:\Users\cbs\Desktop\파일마루_다운로드" "thumbnail-at-60-seconds.png1"'
-			exec( command,
-				function callback(err, stdout, stderr){
-					if (err){
-					console.error(err);
-					}
-			});	
-			driver.findElement(By.xpath('//*[@id="btn_confirm"]')).click()
-		})
-		console.log('current url2');
-	});
-	
-	await driver.sleep(3000);
-	//var clickFile = "document.getElementsByTagName('iframe')[0].contentWindow.document.getElementById('uploadInputBox').click()"
-	//await driver.executeScript ( clickFile )
-	//console.log( 'test' , test)
-	//await driver.executeScript( "console.log( $('iframe').contentWindow.document )")
-	//await driver.executeScript( "$('iframe').contentWindow.document.getElementById('uploadInputBox').click()")
-
-	return 
-	await driver.sleep(2000);
-	
-	await driver.executeScript( "mmsv_Upload_Insert('file','choi077@naver.com')" )			
-	
-	await driver.sleep(3000);	
-	await driver.switchTo().alert().accept();
-	
-	var command = 'registerFile.ahk "[런닝맨].E463.190811.HDTV.H264-720p.mp4"'
-	await exec( command,
-	  function callback(err, stdout, stderr){
-		if (err){
-		  console.error(err);
-		}
-	});	
-	
-	var title = "$('#title').val('" + content.title + "')"
-	await driver.executeScript( title ) 
-
-	await driver.executeScript( "itemListToggle()" ) 	
-	await driver.sleep(500);	
-	await driver.executeScript( "$('.c_item_box > p:nth-child(2)').click()" ) 	
-	await driver.executeScript( "itemResult('submit')" ) 
-	await driver.executeScript( "$('#se2_tool > div > ul.se2_multy > li > button').click()" ) 
-	
-	await driver.switchTo().alert().accept();
-	
-		
 }
 
 startinit()

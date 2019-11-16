@@ -1,0 +1,108 @@
+
+async function StartRegister( ){
+
+	
+	
+}//  $('#naverEditorFrame').contents().find('.se2_input_htmlsrc').html() 
+async function registerDetail_1( driver, content){
+	console.log("registerDetail", content, content.title )
+	await driver.sleep(1000);
+	await driver.executeScript( "$('#naverEditorFrame').contents().find('.se2_to_html').click() " )	
+
+	var title = "$('#title').val('" + content.title + "')"
+	await driver.executeScript( title ) 
+
+	//await driver.executeScript( "itemListToggle()" ) 	
+	var photo1 = '<br><img src="http://uimg.filemaru.com/main/data/2019/10/25/cus5_0_x5dud_100016_1572004422.png" width="100%"><br>'
+	var setPhoto = "$('#naverEditorFrame').contents().find('.se2_input_htmlsrc')[0].value='"
+
+	await driver.sleep(1000);
+	await driver.executeScript( setPhoto+photo1+"'"  ) 	
+}
+
+async function registerDetail( driver, content){
+	console.log("registerDetail", content, content.title )
+	await driver.sleep(10000);
+	await driver.executeScript( "$('#naverEditorFrame').contents().find('.se2_photo').click()" )	
+	
+	let tab1, tab2
+	await driver.getAllWindowHandles().then(function(windowHandles) {
+		 tab1 = windowHandles[0];
+		 tab2 = windowHandles[1];
+		 console.log('windowHandles', windowHandles[0], windowHandles[1], windowHandles[2], windowHandles[3])
+	})
+
+	/*await driver.switchTo().window(tab1).then(() => {
+		driver.getCurrentUrl().then(url => {console.log('current url: "' + url + '"');});
+	});*/
+	//console.log('current url11: ', document );
+	await driver.switchTo().window(tab2).then( async() => {
+		
+		//driver.findElement(By.xpath('//*[@id="uploadInputBox"]')).click()
+		
+		
+		//driver.executeScript( " alert( document.children[0].innerHTML )")
+		//await driver.find_element_by_xpath('//*[@id="uploadInputBox"]').click()
+		//
+		//const until = webdriver.until;
+		//driver.sleep(3000);
+		//var user = driver.wait(until.elementLocated(By.id('uploadInputBox')), timeout);
+		//user.click()
+		//var clickFile = "document.getElementsByTagName('iframe')[0].contentWindow.document.getElementById('uploadInputBox').click()"
+		//driver.executeScript ( clickFile )	
+
+		driver.getCurrentUrl().then( (url) => {
+			console.log('current url1: "' +  url + '"');
+			driver.switchTo().frame(0)
+			driver.findElement(By.xpath('//*[@id="uploadInputBox"]')).click()	
+			
+			driver.sleep(1000);
+			
+			var command = 'click_photo.ahk "C:\Users\cbs\Desktop\파일마루_다운로드" "thumbnail-at-60-seconds.png1"'
+			exec( command,
+				function callback(err, stdout, stderr){
+					if (err){
+					console.error(err);
+					}
+			});	
+			driver.findElement(By.xpath('//*[@id="btn_confirm"]')).click()
+		})
+		console.log('current url2');
+	});
+	
+	await driver.sleep(3000);
+	//var clickFile = "document.getElementsByTagName('iframe')[0].contentWindow.document.getElementById('uploadInputBox').click()"
+	//await driver.executeScript ( clickFile )
+	//console.log( 'test' , test)
+	//await driver.executeScript( "console.log( $('iframe').contentWindow.document )")
+	//await driver.executeScript( "$('iframe').contentWindow.document.getElementById('uploadInputBox').click()")
+
+	return 
+	await driver.sleep(2000);
+	
+	await driver.executeScript( "mmsv_Upload_Insert('file','choi077@naver.com')" )			
+	
+	await driver.sleep(3000);	
+	await driver.switchTo().alert().accept();
+	
+	var command = 'registerFile.ahk "[런닝맨].E463.190811.HDTV.H264-720p.mp4"'
+	await exec( command,
+	  function callback(err, stdout, stderr){
+		if (err){
+		  console.error(err);
+		}
+	});	
+	
+	var title = "$('#title').val('" + content.title + "')"
+	await driver.executeScript( title ) 
+
+	await driver.executeScript( "itemListToggle()" ) 	
+	await driver.sleep(500);	
+	await driver.executeScript( "$('.c_item_box > p:nth-child(2)').click()" ) 	
+	await driver.executeScript( "itemResult('submit')" ) 
+	await driver.executeScript( "$('#se2_tool > div > ul.se2_multy > li > button').click()" ) 
+	
+	await driver.switchTo().alert().accept();
+	
+		
+}

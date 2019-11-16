@@ -11,9 +11,10 @@ var uploadfile = new Schema({
     UploadFlag : { type: Boolean, default: false  },  // 업로드 했나
     //date: String,    
     fulldate: Date,
-    thumbnailpath: String,
+    thumbnailPath: Array,
     published_date: { type: Date, default: Date.now  },
     thumbnailflag: { type: Boolean, default: false  }, // 썸네일 존재 유무
+    realfile: String, // 실제  파일 위치
 });
 
 module.exports = mongoose.model('uploadfile', uploadfile);
